@@ -23,6 +23,7 @@ go_library(
         "//vendor:github.com/godbus/dbus",
         "//vendor:github.com/golang/glog",
         "//vendor:k8s.io/apimachinery/pkg/util/sets",
+        "//vendor:k8s.io/apimachinery/pkg/util/wait",
     ],
 )
 
