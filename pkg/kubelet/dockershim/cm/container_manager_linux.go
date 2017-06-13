@@ -107,13 +107,14 @@ func createCgroupManager(name string) (*fs.Manager, error) {
 	glog.V(2).Infof("Configure resource-only container %q with memory limit: %d", name, memoryLimit)
 
 	allowAllDevices := true
+	ulimited := -1
 	cm := &fs.Manager{
 		Cgroups: &configs.Cgroup{
 			Parent: "/",
 			Name:   name,
 			Resources: &configs.Resources{
-				Memory:          int64(memoryLimit),
-				MemorySwap:      -1,
+				Memory:          uint64(memoryLimit),
+				MemorySwap:      uint64(ulimited),
 				AllowAllDevices: &allowAllDevices,
 			},
 		},

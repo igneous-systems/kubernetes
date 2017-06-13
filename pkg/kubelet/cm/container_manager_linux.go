@@ -409,13 +409,14 @@ func (cm *containerManagerImpl) setupNode(activePods ActivePodsFunc) error {
 
 			glog.V(2).Infof("Configure resource-only container %s with memory limit: %d", cm.RuntimeCgroupsName, memoryLimit)
 			allowAllDevices := true
+			ulimited := -1
 			dockerContainer := &fs.Manager{
 				Cgroups: &configs.Cgroup{
 					Parent: "/",
 					Name:   cm.RuntimeCgroupsName,
 					Resources: &configs.Resources{
-						Memory:          memoryLimit,
-						MemorySwap:      -1,
+						Memory:          uint64(memoryLimit),
+						MemorySwap:      uint64(ulimited),
 						AllowAllDevices: &allowAllDevices,
 					},
 				},
