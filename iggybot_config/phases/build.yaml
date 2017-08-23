@@ -1,0 +1,8 @@
+description: Build Kubernetes
+
+pr: True
+quartz: 0
+
+jobs:
+    - build
+    - test

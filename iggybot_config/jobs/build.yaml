@@ -1,0 +1,18 @@
+description: Build
+
+slavetypes:
+    - c3.4xlarge
+
+steps:
+    - Checkout
+
+    # build docker image
+    - ShellCommand:
+        command: [annotate-output, build/make-build-image.sh]
+        maxTime: 900
+        haltOnFailure: true
+
+    # run docker build for all platforms
+    - ShellCommand:
+        command: [annotate-output, build/run.sh, make, cross]
+        maxTime: 2400

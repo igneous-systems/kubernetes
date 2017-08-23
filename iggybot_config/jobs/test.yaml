@@ -1,0 +1,23 @@
+description: Test
+
+slavetypes:
+    - c3.xlarge
+
+steps:
+    - Checkout
+
+    # build docker image
+    - ShellCommand:
+        command: [annotate-output, build/make-build-image.sh]
+        maxTime: 900
+        haltOnFailure: true
+
+    # run docker unit tests
+    - ShellCommand:
+        command: [annotate-output, build/run.sh, make, test]
+        maxTime: 1800
+
+    # run docker cli tests
+    - ShellCommand:
+        command: [annotate-output, build/run.sh, make, test-cmd]
+        maxTime: 1200
