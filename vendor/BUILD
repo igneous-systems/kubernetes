@@ -5732,6 +5732,7 @@ go_library(
         "github.com/opencontainers/runc/libcontainer/state_linux.go",
         "github.com/opencontainers/runc/libcontainer/stats.go",
         "github.com/opencontainers/runc/libcontainer/stats_linux.go",
+        "github.com/opencontainers/runc/libcontainer/sync.go",
     ],
     tags = ["automanaged"],
     deps = [
@@ -5739,6 +5740,7 @@ go_library(
         "//vendor:github.com/docker/docker/pkg/mount",
         "//vendor:github.com/docker/docker/pkg/symlink",
         "//vendor:github.com/golang/protobuf/proto",
+        "//vendor:github.com/mrunalp/fileutils",
         "//vendor:github.com/opencontainers/runc/libcontainer/apparmor",
         "//vendor:github.com/opencontainers/runc/libcontainer/cgroups",
         "//vendor:github.com/opencontainers/runc/libcontainer/cgroups/fs",
@@ -5839,7 +5841,10 @@ go_library(
         "github.com/opencontainers/runc/libcontainer/configs/network.go",
     ],
     tags = ["automanaged"],
-    deps = ["//vendor:github.com/Sirupsen/logrus"],
+    deps = [
+        "//vendor:github.com/Sirupsen/logrus",
+        "//vendor:github.com/opencontainers/runtime-spec/specs-go",
+    ],
 )
 
 go_library(
@@ -5939,6 +5944,7 @@ go_library(
         "github.com/opencontainers/runc/libcontainer/utils/utils.go",
         "github.com/opencontainers/runc/libcontainer/utils/utils_unix.go",
     ],
+    library = ":github.com/opencontainers/runc/libcontainer/utils_cgo",
     tags = ["automanaged"],
 )
 
@@ -16325,5 +16331,40 @@ filegroup(
 filegroup(
     name = "all-srcs",
     srcs = [":package-srcs"],
+    tags = ["automanaged"],
+)
+
+go_library(
+    name = "github.com/mrunalp/fileutils",
+    srcs = [
+        "github.com/mrunalp/fileutils/fileutils.go",
+        "github.com/mrunalp/fileutils/idtools.go",
+    ],
+    tags = ["automanaged"],
+)
+
+cgo_genrule(
+    name = "github.com/opencontainers/runc/libcontainer/utils_cgo",
+    srcs = [
+        "github.com/opencontainers/runc/libcontainer/utils/cmsg.c",
+        "github.com/opencontainers/runc/libcontainer/utils/cmsg.go",
+        "github.com/opencontainers/runc/libcontainer/utils/cmsg.h",
+    ],
+    clinkopts = [
+        "-lz",
+        "-lm",
+        "-lpthread",
+        "-ldl",
+    ],
+    tags = ["automanaged"],
+)
+
+go_library(
+    name = "github.com/opencontainers/runtime-spec/specs-go",
+    srcs = [
+        "github.com/opencontainers/runtime-spec/specs-go/config.go",
+        "github.com/opencontainers/runtime-spec/specs-go/state.go",
+        "github.com/opencontainers/runtime-spec/specs-go/version.go",
+    ],
     tags = ["automanaged"],
 )
