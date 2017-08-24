@@ -1,4 +1,4 @@
-// +build exclude_kubernetes_plugins
+// +build !kubernetes_plugins
 
 /*
 Copyright 2017 The Kubernetes Authors.
