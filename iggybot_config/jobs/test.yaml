@@ -15,7 +15,7 @@ steps:
     # run docker unit tests
     - ShellCommand:
         command: [annotate-output, build/run.sh, make, test]
-        maxTime: 900
+        maxTime: 1800
 
     # run docker cli tests
     - ShellCommand:
