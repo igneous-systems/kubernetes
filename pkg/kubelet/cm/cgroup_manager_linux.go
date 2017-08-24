@@ -320,16 +320,16 @@ func (m *cgroupManagerImpl) toResources(resourceConfig *ResourceConfig) *libcont
 		return resources
 	}
 	if resourceConfig.Memory != nil {
-		resources.Memory = *resourceConfig.Memory
+		resources.Memory = uint64(*resourceConfig.Memory)
 	}
 	if resourceConfig.CpuShares != nil {
-		resources.CpuShares = *resourceConfig.CpuShares
+		resources.CpuShares = uint64(*resourceConfig.CpuShares)
 	}
 	if resourceConfig.CpuQuota != nil {
 		resources.CpuQuota = *resourceConfig.CpuQuota
 	}
 	if resourceConfig.CpuPeriod != nil {
-		resources.CpuPeriod = *resourceConfig.CpuPeriod
+		resources.CpuPeriod = uint64(*resourceConfig.CpuPeriod)
 	}
 	return resources
 }
