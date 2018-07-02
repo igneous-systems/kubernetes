@@ -21,7 +21,7 @@ package app
 // This file exists to force no plugin implementations to be linked.
 import (
 	// Network plugins
-	"k8s.io/kubernetes/pkg/kubelet/network"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim/network"
 	// Volume plugins
 	"k8s.io/kubernetes/pkg/volume"
 )
