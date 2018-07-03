@@ -119,7 +119,7 @@ func New(address string, port uint, imageFsInfoProvider ImageFsInfoProvider, roo
 	}
 
 	// Create and start the cAdvisor container manager.
-	m, err := manager.New(memory.New(statsCacheDuration, nil), sysFs, maxHousekeepingInterval, allowDynamicHousekeeping, ignoreMetrics, http.DefaultClient)
+	m, err := manager.New(memory.New(statsCacheDuration, nil), sysFs, maxHousekeepingInterval, allowDynamicHousekeeping, ignoreMetrics, http.DefaultClient, []string{"/"})
 	if err != nil {
 		return nil, err
 	}
