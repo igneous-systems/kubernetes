@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -55,6 +56,13 @@ type RuntimeHelper interface {
 	GetExtraSupplementalGroupsForPod(pod *v1.Pod) []int64
 }
 
+// InCreatedStateGracePeriod returns true if the container in created state was
+// created within last one minute. This container is expected to transition
+// out of created state soon.
+func InCreatedStateGracePeriod(cs *ContainerStatus) bool {
+	return cs != nil && cs.State == ContainerStateCreated && time.Since(cs.CreatedAt) < time.Minute
+}
+
 // ShouldContainerBeRestarted checks whether a container needs to be restarted.
 // TODO(yifan): Think about how to refactor this.
 func ShouldContainerBeRestarted(container *v1.Container, pod *v1.Pod, podStatus *PodStatus) bool {
@@ -69,9 +77,14 @@ func ShouldContainerBeRestarted(container *v1.Container, pod *v1.Pod, podStatus 
 	if status.State == ContainerStateRunning {
 		return false
 	}
-	// Always restart container in the unknown, or in the created state.
-	if status.State == ContainerStateUnknown || status.State == ContainerStateCreated {
+	// Always restart container in the unknown.
+	if status.State == ContainerStateUnknown {
 		return true
+	}
+	// Only restart created container if it hasn't been started in over
+	// a minute.
+	if status.State == ContainerStateCreated {
+		return !InCreatedStateGracePeriod(status)
 	}
 	// Check RestartPolicy for dead container
 	if pod.Spec.RestartPolicy == v1.RestartPolicyNever {

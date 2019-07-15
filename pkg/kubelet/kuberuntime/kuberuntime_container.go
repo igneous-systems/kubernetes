@@ -720,6 +720,11 @@ func findNextInitContainerToRun(pod *v1.Pod, podStatus *kubecontainer.PodStatus)
 			return nil, nil, false
 		}
 
+		// container is created within last one minute, return not done.
+		if status.State == kubecontainer.ContainerStateCreated && kubecontainer.InCreatedStateGracePeriod(status) {
+			return nil, nil, false
+		}
+
 		if status.State == kubecontainer.ContainerStateExited {
 			// all init containers successful
 			if i == (len(pod.Spec.InitContainers) - 1) {

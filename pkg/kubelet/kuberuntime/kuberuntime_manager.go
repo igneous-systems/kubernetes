@@ -482,7 +482,10 @@ func (m *kubeGenericRuntimeManager) computePodActions(pod *v1.Pod, podStatus *ku
 				changes.KillPod = true
 			} else {
 				// Always try to stop containers in unknown state first.
-				if initLastStatus != nil && initLastStatus.State == kubecontainer.ContainerStateUnknown {
+				// A created state container is only returned if
+				// it has been in that state for over a minute.
+				// So always attempt to stop it.
+				if initLastStatus != nil && (initLastStatus.State == kubecontainer.ContainerStateUnknown || initLastStatus.State == kubecontainer.ContainerStateCreated) {
 					changes.ContainersToKill[initLastStatus.ID] = containerToKillInfo{
 						name:      next.Name,
 						container: next,
@@ -507,24 +510,28 @@ func (m *kubeGenericRuntimeManager) computePodActions(pod *v1.Pod, podStatus *ku
 		// Call internal container post-stop lifecycle hook for any non-running container so that any
 		// allocated cpus are released immediately. If the container is restarted, cpus will be re-allocated
 		// to it.
-		if containerStatus != nil && containerStatus.State != kubecontainer.ContainerStateRunning {
+		if containerStatus != nil && containerStatus.State != kubecontainer.ContainerStateRunning && !kubecontainer.InCreatedStateGracePeriod(containerStatus) {
 			if err := m.internalLifecycle.PostStopContainer(containerStatus.ID.ID); err != nil {
 				glog.Errorf("internal container post-stop lifecycle hook failed for container %v in pod %v with error %v",
 					container.Name, pod.Name, err)
 			}
 		}
 
-		// If container does not exist, or is not running, check whether we
+		// If container does not exist, or is not running, or has been
+		// in created state for over a minute, check whether we
 		// need to restart it.
-		if containerStatus == nil || containerStatus.State != kubecontainer.ContainerStateRunning {
+		if containerStatus == nil || (containerStatus.State != kubecontainer.ContainerStateRunning && !kubecontainer.InCreatedStateGracePeriod(containerStatus)) {
 			if kubecontainer.ShouldContainerBeRestarted(&container, pod, podStatus) {
 				message := fmt.Sprintf("Container %+v is dead, but RestartPolicy says that we should restart it.", container)
 				glog.Info(message)
 				changes.ContainersToStart = append(changes.ContainersToStart, idx)
-				if containerStatus != nil && containerStatus.State == kubecontainer.ContainerStateUnknown {
+				if containerStatus != nil && (containerStatus.State == kubecontainer.ContainerStateUnknown || containerStatus.State == kubecontainer.ContainerStateCreated) {
 					// If container is in unknown state, we don't know whether it
 					// is actually running or not, always try killing it before
 					// restart to avoid having 2 running instances of the same container.
+					// Similarly, kill created containers
+					// that haven't started for over a
+					// minute.
 					changes.ContainersToKill[containerStatus.ID] = containerToKillInfo{
 						name:      containerStatus.Name,
 						container: &pod.Spec.Containers[idx],
@@ -535,7 +542,7 @@ func (m *kubeGenericRuntimeManager) computePodActions(pod *v1.Pod, podStatus *ku
 			}
 			continue
 		}
-		// The container is running, but kill the container if any of the following condition is met.
+		// The container is running or is in created state, but kill the container if any of the following condition is met.
 		reason := ""
 		restart := shouldRestartOnFailure(pod)
 		if expectedHash, actualHash, changed := containerChanged(&container, containerStatus); changed {
