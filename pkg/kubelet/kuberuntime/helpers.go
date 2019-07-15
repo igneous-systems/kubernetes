@@ -150,6 +150,10 @@ func isInitContainerFailed(status *kubecontainer.Status) bool {
 		return true
 	}
 
+	if status.State == kubecontainer.ContainerStateCreated {
+		return !kubecontainer.InCreatedStateGracePeriod(status)
+	}
+
 	return false
 }
 
