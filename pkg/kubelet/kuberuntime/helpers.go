@@ -140,7 +140,8 @@ func (m *kubeGenericRuntimeManager) getImageUser(image string) (*int64, string, 
 }
 
 // isInitContainerFailed returns true if container has exited and exitcode is not zero
-// or is in unknown state.
+// or is in unknown state or,
+// it has been in created state for over a minute.
 func isInitContainerFailed(status *kubecontainer.ContainerStatus) bool {
 	if status.State == kubecontainer.ContainerStateExited && status.ExitCode != 0 {
 		return true
@@ -148,6 +149,10 @@ func isInitContainerFailed(status *kubecontainer.ContainerStatus) bool {
 
 	if status.State == kubecontainer.ContainerStateUnknown {
 		return true
+	}
+
+	if status.State == kubecontainer.ContainerStateCreated {
+		return !kubecontainer.InCreatedStateGracePeriod(status)
 	}
 
 	return false
