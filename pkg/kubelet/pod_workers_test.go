@@ -61,6 +61,8 @@ func (f *fakePodWorkers) ForgetNonExistingPodWorkers(desiredPods map[types.UID]e
 
 func (f *fakePodWorkers) ForgetWorker(uid types.UID) {}
 
+func (f *fakePodWorkers) WaitWorkerExit(uid types.UID) {}
+
 type TestingInterface interface {
 	Errorf(format string, args ...interface{})
 }
@@ -351,5 +353,33 @@ func TestKillPodNowFunc(t *testing.T) {
 	}
 	if syncPodRecords[0].updateType != kubetypes.SyncPodKill {
 		t.Errorf("Pod update type was %v, but expected %v", syncPodRecords[0].updateType, kubetypes.SyncPodKill)
+	}
+}
+
+func TestWaitWorkerExit(t *testing.T) {
+	fakeRecorder := &record.FakeRecorder{}
+	fakeRuntime := &containertest.FakeRuntime{}
+	fakeCache := containertest.NewFakeCache(fakeRuntime)
+
+	kubeletForRealWorkers := &simpleFakeKubelet{}
+	realPodWorkers := newPodWorkers(kubeletForRealWorkers.syncPodWithWaitGroup, fakeRecorder, queue.NewBasicWorkQueue(&clock.RealClock{}), time.Second, time.Second, fakeCache)
+
+	pod := podWithUIDNameNs("dummyuid", "foo", "bar")
+	kubeletForRealWorkers.wg.Add(1)
+	realPodWorkers.UpdatePod(&UpdatePodOptions{
+		Pod:        pod,
+		UpdateType: kubetypes.SyncPodUpdate,
+	})
+	kubeletForRealWorkers.wg.Wait()
+
+	realPodWorkers.ForgetWorker(pod.GetUID())
+	realPodWorkers.WaitWorkerExit(pod.GetUID())
+
+	realPodWorkers.podLock.Lock()
+	_, updateExists := realPodWorkers.podUpdates[pod.GetUID()]
+	_, doneExists := realPodWorkers.workerDone[pod.GetUID()]
+	realPodWorkers.podLock.Unlock()
+	if updateExists || doneExists {
+		t.Errorf("Pod worker not existed")
 	}
 }
