@@ -1676,6 +1676,8 @@ func (kl *Kubelet) deletePod(pod *v1.Pod) error {
 		return fmt.Errorf("skipping delete because sources aren't ready yet")
 	}
 	kl.podWorkers.ForgetWorker(pod.UID)
+	// Wait until the worker unblocks on any pod cache update and exits.
+	kl.podWorkers.WaitWorkerExit(pod.UID)
 
 	// Runtime cache may not have been updated to with the pod, but it's okay
 	// because the periodic cleanup routine will attempt to delete again later.
