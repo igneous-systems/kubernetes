@@ -1432,6 +1432,12 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		case kubecontainer.ContainerStateRunning:
 			status.State.Running = &v1.ContainerStateRunning{StartedAt: metav1.NewTime(cs.StartedAt)}
 		case kubecontainer.ContainerStateCreated:
+			// Don't assume the container as exited if it's still
+			// in the creation grace period.
+			if kubecontainer.InCreatedStateGracePeriod(cs) {
+				status.State.Waiting = &v1.ContainerStateWaiting{Reason: "ContainerCreating"}
+				break
+			}
 			// Treat containers in the "created" state as if they are exited.
 			// The pod workers are supposed start all containers it creates in
 			// one sync (syncPod) iteration. There should not be any normal
