@@ -1,3 +1,11 @@
+This is the Igneous fork of Kubernetes. This repo contains features we've
+backported as well as customizations that are not (yet) upstream. We vendor
+this repo into our product codebase and in that repo link in our equivalent
+replacements for etcd, the apiserver, and other minor components. We provide
+no support for this repo.
+
+You can find the official project at [kubernetes.io].
+
 # Kubernetes
 
 [![GoDoc Widget]][GoDoc] [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/569/badge)](https://bestpractices.coreinfrastructure.org/projects/569)
