@@ -1,0 +1,12 @@
+description: Build
+
+slavetypes:
+    - c5d.4xlarge
+
+steps:
+    - Checkout
+
+    - ShellCommand:
+        command: [annotate-output, make]
+        maxTime: 900
+        haltOnFailure: true

@@ -75,6 +75,7 @@ type PodWorkers interface {
 	UpdatePod(options *UpdatePodOptions)
 	ForgetNonExistingPodWorkers(desiredPods map[types.UID]sets.Empty)
 	ForgetWorker(uid types.UID)
+	WaitWorkerExit(uid types.UID)
 }
 
 // syncPodOptions provides the arguments to a SyncPod operation.
@@ -120,6 +121,9 @@ type podWorkers struct {
 	// undelivered if it comes in while the worker is working.
 	lastUndeliveredWorkUpdate map[types.UID]UpdatePodOptions
 
+	// Track the worker stop
+	workerDone map[types.UID]chan struct{}
+
 	workQueue queue.WorkQueue
 
 	// This function is run to sync the desired stated of pod.
@@ -146,6 +150,7 @@ func newPodWorkers(syncPodFn syncPodFnType, recorder record.EventRecorder, workQ
 		podUpdates:                map[types.UID]chan UpdatePodOptions{},
 		isWorking:                 map[types.UID]bool{},
 		lastUndeliveredWorkUpdate: map[types.UID]UpdatePodOptions{},
+		workerDone:                map[types.UID]chan struct{}{},
 		syncPodFn:                 syncPodFn,
 		recorder:                  recorder,
 		workQueue:                 workQueue,
@@ -213,14 +218,18 @@ func (p *podWorkers) UpdatePod(options *UpdatePodOptions) {
 		podUpdates = make(chan UpdatePodOptions, 1)
 		p.podUpdates[uid] = podUpdates
 
+		// Setup the worker exit channel
+		p.workerDone[uid] = make(chan struct{})
+
 		// Creating a new pod worker either means this is a new pod, or that the
 		// kubelet just restarted. In either case the kubelet is willing to believe
 		// the status of the pod for the first pod worker sync. See corresponding
 		// comment in syncPod.
-		go func() {
+		go func(doneCh chan<- struct{}) {
 			defer runtime.HandleCrash()
 			p.managePodLoop(podUpdates)
-		}()
+			close(doneCh)
+		}(p.workerDone[uid])
 	}
 	if !p.isWorking[pod.UID] {
 		p.isWorking[pod.UID] = true
@@ -244,6 +253,7 @@ func (p *podWorkers) removeWorker(uid types.UID) {
 		delete(p.lastUndeliveredWorkUpdate, uid)
 	}
 }
+
 func (p *podWorkers) ForgetWorker(uid types.UID) {
 	p.podLock.Lock()
 	defer p.podLock.Unlock()
@@ -258,6 +268,19 @@ func (p *podWorkers) ForgetNonExistingPodWorkers(desiredPods map[types.UID]sets.
 			p.removeWorker(key)
 		}
 	}
+}
+
+// WaitWorkerExit waits for an exited worker to stop
+func (p *podWorkers) WaitWorkerExit(uid types.UID) {
+	p.podLock.Lock()
+	doneCh, ok := p.workerDone[uid]
+	if !ok {
+		p.podLock.Unlock()
+		return
+	}
+	delete(p.workerDone, uid)
+	p.podLock.Unlock()
+	<-doneCh
 }
 
 func (p *podWorkers) wrapUp(uid types.UID, syncErr error) {
